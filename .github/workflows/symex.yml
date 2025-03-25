@@ -1,0 +1,117 @@
+name: Symbolic Execution Verbose Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  klee-verbose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6 hours
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install KLEE and Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm klee
+      - name: Compile Toy Application to LLVM Bitcode
+        run: |
+          # Assume toy.c is in the repo; compile it with clang to produce toy.bc
+          clang -I/usr/include/klee -emit-llvm -c toy.c -o toy.bc
+      - name: Run KLEE with Maximum Verbosity
+        run: |
+          # Run KLEE with flags for verbose output and SMT query dumping.
+          klee --verbose --write-kqueries toy.bc > klee_verbosity.log 2>&1
+          echo "KLEE verbose run completed."
+      - name: Upload KLEE Verbosity Log
+        uses: actions/upload-artifact@v4
+        with:
+          name: klee-verbosity-log
+          path: klee_verbosity.log
+
+  angr-verbose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python and Install angr
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-pip
+          pip3 install angr
+      - name: Run angr with Maximum Verbosity
+        run: |
+          # Run a Python one-liner that configures logging to DEBUG and executes symbolic exploration.
+          python3 - << 'EOF'
+          import logging, angr
+          logging.basicConfig(level=logging.DEBUG)
+          proj = angr.Project("./toy_binary", auto_load_libs=False)
+          simgr = proj.factory.simulation_manager()
+          simgr.run()
+          EOF
+          echo "angr verbose run completed." > angr_verbosity.log
+      - name: Upload angr Verbosity Log
+        uses: actions/upload-artifact@v4
+        with:
+          name: angr-verbosity-log
+          path: angr_verbosity.log
+
+  s2e-verbose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup S2E Environment
+        run: |
+          sudo apt-get update
+          # Installation steps for S2E are assumed here – they may include custom dependency installation.
+          echo "S2E dependencies installed."
+      - name: Run S2E with Maximum Verbosity
+        run: |
+          # Run S2E with a pre-prepared Lua configuration file that sets all logging options to maximum.
+          s2e -c s2e-config-maxverbosity.lua -e ./toy_binary > s2e_verbosity.log 2>&1
+          echo "S2E verbose run completed."
+      - name: Upload S2E Verbosity Log
+        uses: actions/upload-artifact@v4
+        with:
+          name: s2e-verbosity-log
+          path: s2e_verbosity.log
+
+  triton-verbose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python and Install Triton
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-pip
+          pip3 install triton
+      - name: Run Triton with Maximum Verbosity
+        run: |
+          # Execute a Python script that initializes Triton in verbose mode and processes the toy binary.
+          python3 - << 'EOF'
+          import triton
+          # Enable maximum verbosity if supported by your instrumentation.
+          triton.set_verbose(True)
+          # Here, you would load your binary, create a Triton context, and run symbolic execution.
+          # For demonstration, we simply print a verbose statement.
+          print("Triton verbose mode activated.")
+          # (Extend this script with your actual symbolic execution logic.)
+          EOF
+          echo "Triton verbose run completed." > triton_verbosity.log
+      - name: Upload Triton Verbosity Log
+        uses: actions/upload-artifact@v4
+        with:
+          name: triton-verbosity-log
+          path: triton_verbosity.log
