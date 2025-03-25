@@ -2,9 +2,9 @@ name: KLEE Verbosity Test
 
 on:
   push:
-    branches: master
+    branches: [main]
   pull_request:
-    branches: master
+    branches: [main]
 
 env:
   BASE_IMAGE: ubuntu:jammy-20230126
