@@ -1,4 +1,4 @@
-name: KLEE Verbosity Test
+name: KLEE Verbosity Test with Debug
 
 on:
   push:
@@ -24,16 +24,23 @@ jobs:
         run: |
           clang -I/usr/include/klee -emit-llvm -c toy.c -o toy.bc
           echo "✅ toy.c compiled to toy.bc."
+      
+      - name: List Workspace Files (Pre-Docker)
+        run: |
+          echo "Listing files in workspace:"
+          ls -la
+          
+      - name: Verify Bitcode in Docker Workspace
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/workspace klee/klee:latest ls -la /workspace
           
       - name: Run KLEE in Docker with Maximum Verbosity
         run: |
-          # Pull the pre-built KLEE Docker image. (Ensure this image exists or adjust to your image.)
-          docker pull klee/klee:latest
-          # Run KLEE with verbose SMT logging options.
+          echo "Running KLEE..."
           docker run --rm -v ${{ github.workspace }}:/workspace klee/klee:latest \
             klee --verbose --write-kqueries /workspace/toy.bc > klee_verbosity.log 2>&1
           echo "✅ KLEE verbose run completed."
-
+          
       - name: Upload KLEE Verbosity Log
         uses: actions/upload-artifact@v4
         with:
