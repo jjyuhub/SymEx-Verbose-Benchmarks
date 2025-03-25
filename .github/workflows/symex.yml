@@ -8,32 +8,28 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout KLEE Source
         uses: actions/checkout@v3
 
       - name: Install Build Dependencies
         run: |
-          # Update packages and install basic tools
           sudo apt-get update
           sudo apt-get install -y wget gnupg build-essential cmake
 
-          # Add the LLVM apt repository for LLVM 13
+          # Add LLVM APT repository for LLVM 13 on Ubuntu 22.04 (jammy)
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          echo "deb http://apt.llvm.org/$(lsb_release -sc)/ llvm-toolchain-$(lsb_release -sc)-13 main" | sudo tee /etc/apt/sources.list.d/llvm-13.list
+          echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-13 main" | sudo tee /etc/apt/sources.list.d/llvm.list
           sudo apt-get update
-
-          # Install LLVM 13 and STP solver development files
+          # Install LLVM 13 and its tools along with STP solver dependency
           sudo apt-get install -y clang-13 llvm-13 llvm-13-dev llvm-13-tools libstp-dev
 
       - name: Configure KLEE Build
         run: |
-          # Create an out-of-source build directory
           mkdir build
           cd build
-          # Configure the build with STP solver support.
-          # The flag -DLLVM_CONFIG=llvm-config-13 makes sure KLEE uses LLVM 13.
+          # Configure KLEE with STP support and specify LLVM 13
           cmake -DENABLE_SOLVER_STP=ON -DLLVM_CONFIG=llvm-config-13 ..
 
       - name: Build KLEE
@@ -44,5 +40,4 @@ jobs:
       - name: Run Tests (Optional)
         run: |
           cd build
-          # This runs both system and unit tests if they were enabled during configuration.
           make check
