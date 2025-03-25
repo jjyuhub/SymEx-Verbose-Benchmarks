@@ -20,10 +20,11 @@ jobs:
           sudo apt-get install -y clang llvm
           echo "✅ Clang and LLVM installed."
 
-      - name: Compile toy.c to LLVM Bitcode
+      - name: Compile toy.c to LLVM Bitcode with -O0
         run: |
-          clang -I/usr/include/klee -emit-llvm -c toy.c -o toy.bc
-          echo "✅ toy.c compiled to toy.bc."
+          # Using -O0 to avoid optimizations that could remove symbolic information.
+          clang -I/usr/include/klee -O0 -emit-llvm -c toy.c -o toy.bc
+          echo "✅ toy.c compiled to toy.bc with -O0."
       
       - name: List Workspace Files (Pre-Docker)
         run: |
@@ -41,6 +42,11 @@ jobs:
             klee --verbose --write-kqueries /workspace/toy.bc > klee_verbosity.log 2>&1
           echo "✅ KLEE verbose run completed."
           
+      - name: Output KLEE Log for Debugging
+        run: |
+          echo "Content of klee_verbosity.log:"
+          cat klee_verbosity.log
+
       - name: Upload KLEE Verbosity Log
         uses: actions/upload-artifact@v4
         with:
