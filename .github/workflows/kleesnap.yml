@@ -38,21 +38,33 @@ jobs:
       - name: Install KLEE from Snap Store
         run: sudo snap install klee --classic
 
+      - name: Test KLEE Version
+        run: klee --version
+
       - name: Compile toy.c to LLVM Bitcode
         run: |
           # Compile toy.c with -O0 to preserve symbolic information.
           clang -I/usr/include/klee -O0 -emit-llvm -c toy.c -o toy.bc
 
       - name: Prepare Bitcode for KLEE
-        run: cp toy.bc $HOME/toy.bc
+        run: |
+          # Copy the bitcode file to $HOME and set appropriate permissions
+          cp toy.bc $HOME/toy.bc
+          chmod 644 $HOME/toy.bc
+          # List files in $HOME to confirm that toy.bc is there
+          ls -la $HOME
 
       - name: Run KLEE with Maximum Verbosity
         run: |
           cd $HOME
           echo "Running KLEE..."
+          # Run KLEE on the bitcode file in $HOME
           klee --verbose --write-kqueries toy.bc > klee_verbosity.log 2>&1
-          echo "✅ KLEE verbose run completed."
+          ret=$?
+          echo "KLEE returned exit code $ret"
+          # Copy the log file back to the workspace for artifact upload
           cp klee_verbosity.log $GITHUB_WORKSPACE/
+          exit $ret
 
       - name: Upload KLEE Verbosity Log
         uses: actions/upload-artifact@v4
