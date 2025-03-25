@@ -1,0 +1,20 @@
+name: Install KLEE
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  install-klee:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install KLEE from Snap Store
+        run: sudo snap install klee --classic
+
+      - name: Verify KLEE Installation
+        run: klee --version
