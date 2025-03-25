@@ -35,7 +35,7 @@ jobs:
           git clone https://github.com/stp/stp.git
           cd stp
           mkdir build && cd build
-          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_ABC=OFF ..
           ninja
           sudo ninja install
           echo "✅ STP built and installed."
