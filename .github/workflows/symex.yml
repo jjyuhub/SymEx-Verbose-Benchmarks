@@ -1,4 +1,4 @@
-name: KLEE Verbosity Test (Without Docker)
+name: KLEE Verbosity Test (No Docker, Build from Source)
 
 on:
   push:
@@ -14,20 +14,28 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Add KLEE PPA and Install Dependencies
+      - name: Install Dependencies
         run: |
-          sudo add-apt-repository ppa:klee/klee -y
           sudo apt-get update
-          sudo apt-get install -y klee clang llvm
-          echo "✅ KLEE, Clang, and LLVM installed."
+          sudo apt-get install -y clang llvm cmake ninja-build libboost-all-dev z3 libz3-dev python3 python3-pip git
+          echo "✅ Installed dependencies."
 
+      - name: Clone and Build KLEE from Source
+        run: |
+          git clone https://github.com/klee/klee.git
+          cd klee
+          mkdir build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SOLVER_STP=ON
+          ninja
+          echo "✅ KLEE built successfully."
+      
       - name: Compile toy.c to LLVM Bitcode
         run: |
-          # Use -O0 to preserve symbolic information.
+          # Compile with -O0 to preserve symbolic information.
           clang -I/usr/include/klee -O0 -emit-llvm -c toy.c -o toy.bc
-          echo "✅ toy.c compiled to toy.bc."
+          echo "✅ toy.c compiled to toy.bc with -O0."
       
-      - name: List Files in Workspace
+      - name: List Workspace Files
         run: |
           echo "Listing workspace files:"
           ls -la
@@ -35,9 +43,15 @@ jobs:
       - name: Run KLEE with Maximum Verbosity
         run: |
           echo "Running KLEE..."
-          klee --verbose --write-kqueries toy.bc > klee_verbosity.log 2>&1
+          # Use the built KLEE binary from the clone directory.
+          ./klee/build/bin/klee --verbose --write-kqueries toy.bc > klee_verbosity.log 2>&1
           echo "✅ KLEE verbose run completed."
       
+      - name: Output KLEE Log for Debugging
+        run: |
+          echo "Content of klee_verbosity.log:"
+          cat klee_verbosity.log
+
       - name: Upload KLEE Verbosity Log
         uses: actions/upload-artifact@v4
         with:
