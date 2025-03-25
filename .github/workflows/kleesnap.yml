@@ -6,13 +6,35 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  BASE_IMAGE: ubuntu:jammy-20230126
+  REPOSITORY: ghcr.io/klee
+  COVERAGE: 0
+  DISABLE_ASSERTIONS: 0
+  ENABLE_DOXYGEN: 0
+  ENABLE_OPTIMIZED: 1
+  ENABLE_DEBUG: 1
+  GTEST_VERSION: 1.11.0
+  KLEE_RUNTIME_BUILD: "Debug+Asserts"
+  LLVM_VERSION: 13
+  MINISAT_VERSION: "master"
+  REQUIRES_RTTI: 0
+  SOLVERS: STP:Z3
+  STP_VERSION: 2.3.3
+  TCMALLOC_VERSION: 2.9.1
+  UCLIBC_VERSION: klee_uclibc_v1.4
+  USE_TCMALLOC: 1
+  USE_LIBCXX: 1
+  Z3_VERSION: 4.8.15
+  SQLITE_VERSION: 3400100
+
 jobs:
   Linux:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
+      
       - name: Install KLEE from Snap Store
         run: sudo snap install klee --classic
 
@@ -21,11 +43,16 @@ jobs:
           # Compile toy.c with -O0 to preserve symbolic information.
           clang -I/usr/include/klee -O0 -emit-llvm -c toy.c -o toy.bc
 
+      - name: Prepare Bitcode for KLEE
+        run: cp toy.bc $HOME/toy.bc
+
       - name: Run KLEE with Maximum Verbosity
         run: |
+          cd $HOME
           echo "Running KLEE..."
           klee --verbose --write-kqueries toy.bc > klee_verbosity.log 2>&1
           echo "✅ KLEE verbose run completed."
+          cp klee_verbosity.log $GITHUB_WORKSPACE/
 
       - name: Upload KLEE Verbosity Log
         uses: actions/upload-artifact@v4
