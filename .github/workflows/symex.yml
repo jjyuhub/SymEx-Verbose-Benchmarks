@@ -1,4 +1,4 @@
-name: KLEE Verbosity Test
+name: KLEE Verbosity Test 
 
 on:
   push:
