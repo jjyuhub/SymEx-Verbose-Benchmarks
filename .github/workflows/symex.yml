@@ -25,11 +25,11 @@ jobs:
           git clone https://github.com/stp/minisat.git
           cd minisat
           mkdir build && cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release
+          cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Release
           ninja
           sudo ninja install
           echo "✅ MiniSat built and installed."
-      
+
       - name: Clone and Build STP
         run: |
           git clone https://github.com/stp/stp.git
@@ -39,7 +39,7 @@ jobs:
           ninja
           sudo ninja install
           echo "✅ STP built and installed."
-      
+
       - name: Clone and Build KLEE from Source
         run: |
           git clone https://github.com/klee/klee.git
@@ -48,24 +48,24 @@ jobs:
           cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SOLVER_STP=ON -DSTP_DIR=/usr/local
           ninja
           echo "✅ KLEE built successfully."
-      
+
       - name: Compile toy.c to LLVM Bitcode
         run: |
           # Compile toy.c with -O0 to preserve symbolic information.
           clang -I/usr/include/klee -O0 -emit-llvm -c toy.c -o toy.bc
           echo "✅ toy.c compiled to toy.bc with -O0."
-      
+
       - name: List Workspace Files
         run: |
           echo "Listing workspace files:"
           ls -la
-      
+
       - name: Run KLEE with Maximum Verbosity
         run: |
           echo "Running KLEE..."
           ./klee/build/bin/klee --verbose --write-kqueries toy.bc > klee_verbosity.log 2>&1
           echo "✅ KLEE verbose run completed."
-      
+
       - name: Output KLEE Log for Debugging
         run: |
           echo "Content of klee_verbosity.log:"
