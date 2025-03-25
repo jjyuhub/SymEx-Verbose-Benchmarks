@@ -58,11 +58,10 @@ jobs:
         run: |
           cd $HOME
           echo "Running KLEE..."
-          # Run KLEE on the bitcode file in $HOME
-          klee --verbose --write-kqueries toy.bc > klee_verbosity.log 2>&1
-          ret=$?
+          # Run KLEE on the bitcode file in $HOME and pipe output with tee so logs are visible
+          klee --verbose --write-kqueries toy.bc 2>&1 | tee klee_verbosity.log
+          ret=${PIPESTATUS[0]}
           echo "KLEE returned exit code $ret"
-          # Copy the log file back to the workspace for artifact upload
           cp klee_verbosity.log $GITHUB_WORKSPACE/
           exit $ret
 
