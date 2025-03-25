@@ -1,76 +1,62 @@
-name: KLEE Verbosity Test (No Docker, Build from Source with STP and MiniSat)
+name: KLEE Verbosity Test
 
 on:
   push:
-    branches: [main]
+    branches: master
   pull_request:
-    branches: [main]
+    branches: master
+
+env:
+  BASE_IMAGE: ubuntu:jammy-20230126
+  REPOSITORY: ghcr.io/klee
+  COVERAGE: 0
+  DISABLE_ASSERTIONS: 0
+  ENABLE_DOXYGEN: 0
+  ENABLE_OPTIMIZED: 1
+  ENABLE_DEBUG: 1
+  GTEST_VERSION: 1.11.0
+  KLEE_RUNTIME_BUILD: "Debug+Asserts"
+  LLVM_VERSION: 13
+  MINISAT_VERSION: "master"
+  REQUIRES_RTTI: 0
+  SOLVERS: STP:Z3
+  STP_VERSION: 2.3.3
+  TCMALLOC_VERSION: 2.9.1
+  UCLIBC_VERSION: klee_uclibc_v1.4
+  USE_TCMALLOC: 1
+  USE_LIBCXX: 1
+  Z3_VERSION: 4.8.15
+  SQLITE_VERSION: 3400100
 
 jobs:
-  klee-verbose:
+  Linux:
     runs-on: ubuntu-latest
-    timeout-minutes: 360  # 6 hours
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Install Build Dependencies
+      
+      - name: Checkout KLEE Source
+        run: git clone https://github.com/klee/klee.git
+      
+      - name: Build KLEE
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang llvm cmake ninja-build libboost-all-dev z3 libz3-dev python3 python3-pip git
-          echo "✅ Installed build dependencies."
-
-      - name: Clone and Build MiniSat
-        run: |
-          git clone https://github.com/stp/minisat.git
-          cd minisat
-          mkdir build && cd build
-          cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Release
-          ninja
-          sudo ninja install
-          echo "✅ MiniSat built and installed."
-
-      - name: Clone and Build STP
-        run: |
-          git clone https://github.com/stp/stp.git
-          cd stp
-          mkdir build && cd build
-          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_ABC=OFF -DENABLE_TESTS=OFF -DENABLE_PYTHON=OFF ..
-          ninja
-          sudo ninja install
-          echo "✅ STP built and installed."
-
-      - name: Clone and Build KLEE from Source
-        run: |
-          git clone https://github.com/klee/klee.git
           cd klee
-          mkdir build && cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SOLVER_STP=ON -DSTP_DIR=/usr/local
-          ninja
-          echo "✅ KLEE built successfully."
-
+          # This builds KLEE and creates a Docker image (named "klee/klee:latest")
+          scripts/build/build.sh klee --docker --create-final-image
+          cd ..
+      
       - name: Compile toy.c to LLVM Bitcode
         run: |
           # Compile toy.c with -O0 to preserve symbolic information.
           clang -I/usr/include/klee -O0 -emit-llvm -c toy.c -o toy.bc
-          echo "✅ toy.c compiled to toy.bc with -O0."
-
-      - name: List Workspace Files
-        run: |
-          echo "Listing workspace files:"
-          ls -la
-
+      
       - name: Run KLEE with Maximum Verbosity
         run: |
           echo "Running KLEE..."
-          ./klee/build/bin/klee --verbose --write-kqueries toy.bc > klee_verbosity.log 2>&1
+          docker run --rm -v ${{ github.workspace }}:/workspace klee/klee:latest \
+            klee --verbose --write-kqueries /workspace/toy.bc > klee_verbosity.log 2>&1
           echo "✅ KLEE verbose run completed."
-
-      - name: Output KLEE Log for Debugging
-        run: |
-          echo "Content of klee_verbosity.log:"
-          cat klee_verbosity.log
-
+      
       - name: Upload KLEE Verbosity Log
         uses: actions/upload-artifact@v4
         with:
